@@ -1,6 +1,6 @@
 # GIFT-LP
 Liquidity swapping Pool GIFT
-## FUNCTIONAL REQUIREMENTS:
+# FUNCTIONAL REQUIREMENTS:
 ## Add Liquidity Functionality:
 Users (for now just us, but in general whitelisted addresses with role liquidityProvider) should be able to add liquidity to the pool by depositing a specified amount of tokens. The liquidity added by users should increase the overall liquidity pool size.
 We need an allowance Role to set the users allowed to add and withdraw Liquidity (Oppenzeppelin Roles "LiquidityProvider").
