@@ -20,6 +20,13 @@ contract LiquidityPool is Ownable {
     event LiquidityRemoved(address indexed user, uint256 amount);
     event TokensSwapped(address indexed user, uint256 amountIn, uint256 amountOut);
 
+    // TODos
+    // --------------------------------------------------------
+    // Add roles for all functions
+    // Add Swap back from GIFT to the other tokens (USDC/USDT)
+    // --------------------------------------------------------
+
+
     constructor(address _giftToken, address _usdcToken) {
         giftToken = IERC20(_giftToken);
         usdcToken = _usdcToken;
