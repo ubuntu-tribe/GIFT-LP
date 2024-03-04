@@ -44,7 +44,11 @@ Comprehensive test suite covering all aspects of the smart contract functionalit
 Detailed documentation explaining the contract architecture, functionalities, and usage instructions.
 Instructions for deploying the contract and interacting with it on the Ethereum blockchain.
 ## Supporting Toolset:
-A script library to interact with the contract, developed in node.js and accessible and protected by our API Layer and automated backend services
+A script library to interact with the contract, developed in node.js and accessible and protected by our API Layer or executed as scheduled backend service (PM2).
++ A script to deploy contract and upgrade contract (Truffle)
++ node.js API scrips to interact with Contract (set GIFT price, whitlist addresses (idea is to manage this from our web portal over API calls
++ read events, statistics to monitor liquidity (here we use NowNodes and a solution is in place)
+
 ## Audit Report:
 A security audit report conducted by a reputable third-party auditing firm, highlighting any vulnerabilities found and recommendations for remediation.
 ## Deployment Assistance:
