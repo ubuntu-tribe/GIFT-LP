@@ -2,8 +2,8 @@
 Liquidity swapping Pool GIFT
 ## FUNCTIONAL REQUIREMENTS:
 ## Add Liquidity Functionality:
-Users should be able to add liquidity to the pool by depositing a specified amount of tokens. The liquidity added by users should increase the overall liquidity pool size.
-We need an allowance Role to set the users allowed to add and remove Liquidity (Oppenzeppelin Roles)
+Users (for now just us, but in general whitelisted addresses with role liquidityProvider) should be able to add liquidity to the pool by depositing a specified amount of tokens. The liquidity added by users should increase the overall liquidity pool size.
+We need an allowance Role to set the users allowed to add and withdraw Liquidity (Oppenzeppelin Roles "LiquidityProvider").
 Remove Liquidity Functionality:
 Users should have the ability to remove liquidity from the pool, withdrawing their share of tokens from the pool. Upon withdrawal, the liquidity pool size should decrease accordingly.
 ## Token Swapping:
@@ -11,9 +11,10 @@ Users should be able to swap tokens against the main token GIFT within the liqui
 Token to Swap
 + USDC <> GIFT
 +	USDT <> GIFT
-+	SHIB <> GIFT
-The swapping functionality should execute trades at defines price rates with no slippage.
-The Premium to Swap Tokens is 5% on GIFT Pmarket Price (Known as UTribe GIFT at Premium)
++	SHIB > USDC > GIFT (This case needs more detailed concept, as we need to pay suppliers for gold in $, and we cant hedge the volatility risk now, maybe SHIB over 1Inch to USDC and then USDC to GIFT)
+The swapping functionality should execute trades at a defined price rate with no slippage.
+The Premium to Swap Tokens is 5% on Gold Spot market Price (Known as UTribe GIFT at Premium). We source Gold Price from goldapi and Chainlink Oracle.
+We have an API for Goldprice, and soon we are getting listed Coinmarketcap.
 ## Set Price
 The Price of Gift can be set and the swaps are calculated with that price (Gold Price per mg = 1 GIFT Token). Add a role and give permissions to set price.
 Add New Swappable Tokens:
@@ -23,9 +24,8 @@ The contract should incorporate a whitelist of addresses that are allowed to swa
 OpenZeppelin Integration:
 Basic functionalities such as access control, ownership, and upgradeability should be implemented using OpenZeppelin libraries. The contract should be upgradeable to accommodate future enhancements and fixes.
 ## Events:
-All acrions like add/remove tokens, Liquidity or swaps should trigger events.
- 
-#NON-FUNCTIONAL REQUIREMENTS:
+All actions like add/remove tokens, Liquidity or swaps should trigger events.
+# NON-FUNCTIONAL REQUIREMENTS:
 ## Security:
 The contract should be thoroughly audited for potential security vulnerabilities. Best practices for secure smart contract development should be followed to mitigate risks.
 ## Efficiency:
