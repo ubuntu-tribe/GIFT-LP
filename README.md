@@ -17,12 +17,12 @@ The Premium to Swap Tokens is 5% on Gold Spot market Price (Known as UTribe GIFT
 We have an API for Goldprice, and soon we are getting listed Coinmarketcap.
 ## Set Price
 The Price of Gift can be set and the swaps are calculated with that price (Gold Price per mg = 1 GIFT Token). Add a role and give permissions to set price.
-Add New Swappable Tokens:
+## Add New Swappable Tokens:
 There should be a mechanism to add new tokens to the liquidity pool for swapping against GIFT. The addition of new tokens should follow a standardized process and ensure compatibility with existing functionalities. This should be stored in a array and it should be possible to remove tokens as well.
-Whitelist Functionality:
+## Whitelist Functionality:
 The contract should incorporate a whitelist of addresses that are allowed to swap tokens. Only whitelisted addresses should be able to execute swaps within the liquidity pool. This are primary our Partners for ON-/Off-Ramp. Later we will add a DID check function (Decentralized identifier) to allow our verified (KYC) Wallet users to swap directly.
-OpenZeppelin Integration:
-Basic functionalities such as access control, ownership, and upgradeability should be implemented using OpenZeppelin libraries. The contract should be upgradeable to accommodate future enhancements and fixes.
+## OpenZeppelin Integration:
+Basic functionalities such as roles for access control, ownership, and upgradeability should be implemented using OpenZeppelin libraries. The contract should be upgradeable to accommodate future enhancements and fixes.
 ## Events:
 All actions like add/remove tokens, Liquidity or swaps should trigger events.
 # NON-FUNCTIONAL REQUIREMENTS:
