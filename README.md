@@ -15,8 +15,13 @@ Token to Swap
 The swapping functionality should execute trades at a defined price rate with no slippage.
 The Premium to Swap Tokens is 5% on Gold Spot market Price (Known as UTribe GIFT at Premium). We source Gold Price from goldapi and Chainlink Oracle.
 We have an API for Goldprice, and soon we are getting listed Coinmarketcap.
+
 ## Set Price
 The Price of Gift can be set and the swaps are calculated with that price (Gold Price per mg = 1 GIFT Token). Add a role and give permissions to set price.
+## Premium
+The Premiums should be set as parameters in a flexible array. So we can have different premiums for different usecases, or can exclude swaps from paying premiun (internal)
+Function to add a premium level. Default Premium if not specified is 5%.
+In a swapp only an addrss with the permission to change premium should be allowed (each premium level has a permission)
 ## Add New Swappable Tokens:
 There should be a mechanism to add new tokens to the liquidity pool for swapping against GIFT. The addition of new tokens should follow a standardized process and ensure compatibility with existing functionalities. This should be stored in a array and it should be possible to remove tokens as well.
 ## Whitelist Functionality:
