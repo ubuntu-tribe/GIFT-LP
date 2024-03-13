@@ -44,7 +44,7 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
         address _priceManager,
         address _whitelist
     ) {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         giftToken = _giftToken;
         usdcToken = _usdcToken;
         usdtToken = _usdtToken;

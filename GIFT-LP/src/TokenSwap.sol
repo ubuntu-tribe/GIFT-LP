@@ -20,7 +20,7 @@ contract TokenSwap is AccessControl {
     event TokensSwapped(address indexed user, address indexed fromToken, address indexed toToken, uint256 amountIn, uint256 amountOut);
 
     constructor(address _liquidityPool, address _priceManager, address _whitelist) {
-        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         liquidityPool = LiquidityPool(_liquidityPool);
         priceManager = PriceManager(_priceManager);
         whitelist = Whitelist(_whitelist);

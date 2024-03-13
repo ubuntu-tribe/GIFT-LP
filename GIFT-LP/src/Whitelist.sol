@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+/*// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -22,4 +22,4 @@ contract Whitelist is Ownable {
     function isWhitelisted(address _address) external view returns (bool) {
         return whitelistedAddresses[_address];
     }
-}
+}*/
