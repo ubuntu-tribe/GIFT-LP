@@ -95,9 +95,13 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
         emit StablecoinsWithdrawn(_amount);
     }
 
-    function checkLiquidityThreshold(address _token, uint256 _threshold) external view {
+    function checkLiquidityThreshold(address _token, uint256 _threshold) external {
         if (liquidity[_token] < _threshold) {
             emit LiquidityThresholdAlert(_token, _threshold);
         }
     }
 }
+
+
+
+
