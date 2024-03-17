@@ -1,22 +1,37 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract Whitelist is Ownable {
+contract Whitelist is AccessControl {
+    bytes32 public constant WHITELISTER_ROLE = keccak256("WHITELISTER_ROLE");
     mapping(address => bool) public whitelistedAddresses;
 
     event AddedToWhitelist(address indexed account);
     event RemovedFromWhitelist(address indexed account);
 
-    constructor() Ownable(msg.sender) {}
+    constructor() {
+        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
 
-    function addToWhitelist(address _address) external onlyOwner {
+    function addWhitelister(address _account) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can add whitelisters");
+        grantRole(WHITELISTER_ROLE, _account);
+    }
+
+    function removeWhitelister(address _account) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can remove whitelisters");
+        revokeRole(WHITELISTER_ROLE, _account);
+    }
+
+    function addToWhitelist(address _address) external {
+        require(hasRole(WHITELISTER_ROLE, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only whitelisters or admin can add to whitelist");
         whitelistedAddresses[_address] = true;
         emit AddedToWhitelist(_address);
     }
 
-    function removeFromWhitelist(address _address) external onlyOwner {
+    function removeFromWhitelist(address _address) external {
+        require(hasRole(WHITELISTER_ROLE, msg.sender) || hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only whitelisters or admin can remove from whitelist");
         whitelistedAddresses[_address] = false;
         emit RemovedFromWhitelist(_address);
     }
