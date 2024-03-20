@@ -1,10 +1,6 @@
-Certainly! Below is a Markdown guide that outlines how to initialize a project, run smart contracts, and deploy using Truffle and Hardhat. This guide can be added to your project as a README.md or any markdown file for deployment documentation.
-
----
-
 # Ethereum Smart Contract Deployment Guide
 
-This guide provides instructions on how to initialize a project, run smart contracts, and deploy using Truffle and Hardhat - two of the most popular development frameworks for Ethereum.
+According to Oliver, foundry isn't a primary framework in this project so this guide provides instructions on how to initialize the project, run the smart contracts, and deploy using Truffle and Hardhat.
 
 ## Using Truffle
 
@@ -153,7 +149,3 @@ Deploy your contracts to the desired network:
 ```bash
 npx hardhat run scripts/deploy.js --network ropsten
 ```
-
----
-
-Feel free to adjust the guide according to your project's specific requirements and configurations. This markdown documentation aims to provide a clear and straightforward path for initializing projects, running, and deploying Ethereum smart contracts using Truffle and Hardhat.
