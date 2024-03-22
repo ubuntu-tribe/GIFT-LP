@@ -1,0 +1,9 @@
+[submodule "GIFT-LP/lib/forge-std"]
+	path = GIFT-LP/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "GIFT-LP/lib/openzeppelin-contracts"]
+	path = GIFT-LP/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "GIFT-LP/lib/chainlink-brownie-contracts"]
+	path = GIFT-LP/lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts

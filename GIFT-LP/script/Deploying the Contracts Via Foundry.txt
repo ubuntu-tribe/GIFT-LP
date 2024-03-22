@@ -1,0 +1,21 @@
+Deploying the Contracts
+
+All the deployment scripts have been commented out, undo the comments to deploy natively
+
+First, deploy the `Whitelist` and `PriceManager` contracts since they are dependencies for the `LiquidityPool`. Use their deployed addresses in the `LiquidityPool` deployment script. Then, deploy the `TokenSwap` contract last, using the addresses of the previously deployed contracts.
+
+To deploy each contract, run the corresponding script with Forge:
+
+```bash
+forge script script/DeployWhitelist.s.sol --broadcast --rpc-url <YOUR_RPC_URL> --private-key <YOUR_PRIVATE_KEY>
+forge script script/DeployPriceManager.s.sol --broadcast --rpc-url <YOUR_RPC_URL> --private-key <YOUR_PRIVATE_KEY>
+# Update deployed addresses in subsequent scripts
+forge script script/DeployLiquidityPool.s.sol --broadcast --rpc-url <YOUR_RPC_URL> --private-key <YOUR_PRIVATE_KEY>
+forge script script/DeployTokenSwap.s.sol --broadcast --rpc-url <YOUR_RPC_URL> --private-key <YOUR_PRIVATE_KEY>
+```
+
+Make sure to replace `<YOUR_RPC_URL>` and `<YOUR_PRIVATE_KEY>` with your actual Ethereum node URL and private key. This will deploy each contract to the network specified in your RPC URL.
+
+Note:
+
+- Replace placeholder addresses with actual contract addresses and token addresses where indicated.usage. Also keep your private key safe, you can use an ENV file to store these important variables.
