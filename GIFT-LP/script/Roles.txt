@@ -1,0 +1,25 @@
+When setting roles, for security reasons, you need to provide the hash values alongside the address rather than the plain values.
+here are the roles that require a hash value.
+
+Liquidity provider role = 0x42802a37d17e698ec3d88f7a6917f1f5a6abb4d99a8f4255c389e56d10218a64
+
+Price Setter role = 0x04824fcb60e7cc526d70b264caa65b62ed44d9c8e5d230e8ff6b0c7373843b8a
+
+Premium manager role = 0xf11da9aa687a0b1b1bd601c565db99c0c13922fc1f22205ea70e5d91130da9cd
+
+Whitelister role = 0x8619cecd8b9e095ab43867f5b69d492180450fe862e6b50bfbfb24b75dd84c8a
+
+
+
+these were calculated using a solidity hash calculator i coded here;
+
+'''solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract HashCalculator {
+    function calculateHash() public pure returns (bytes32) {
+        return keccak256("WHITELISTER_ROLE");
+    }
+}
+'''
