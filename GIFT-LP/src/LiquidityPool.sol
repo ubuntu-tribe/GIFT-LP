@@ -91,6 +91,13 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
         giftPrice = _price; // Update GIFT token price.
         emit GiftPriceChanged(_price); // Emit price change event.
     }
+    // Function to transfer Ownership.
+    function transferAdminRole(address newAdmin) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can transfer admin role");
+        grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    
+    }
 
     // Function to withdraw stablecoins from the liquidity pool. Restricted to admin.
     function withdrawStablecoins(uint256 _amount) external {
