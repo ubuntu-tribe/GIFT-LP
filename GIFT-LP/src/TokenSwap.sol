@@ -35,6 +35,9 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
 
         uint256 giftPrice = priceManager.giftPrice();
         uint256 amountOut = (_amountIn * giftPrice) / 1e18;
+        // Check if there is enough liquidity before removing
+        require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= amountOut, "Insufficient liquidity");
+
 
         liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), amountOut);
         IERC20(liquidityPool.giftToken()).safeTransfer(msg.sender, amountOut);
@@ -69,6 +72,9 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
 
         uint256 giftPrice = priceManager.giftPrice();
         uint256 amountOut = (_amountIn * giftPrice) / 1e18;
+
+        // Check if there is enough liquidity before removing
+        require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= amountOut, "Insufficient liquidity");
 
         liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), amountOut);
         IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, amountOut);
