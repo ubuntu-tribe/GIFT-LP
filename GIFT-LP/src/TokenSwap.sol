@@ -27,7 +27,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         whitelist = Whitelist(_whitelist);
     }
 
-    function swapTokens(address _token, uint256 _amountIn) external nonReentrant {
+    function swapTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
         require(swappableTokens[_token], "Token not swappable");
 
@@ -40,7 +40,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
 
 
         liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), amountOut);
-        IERC20(liquidityPool.giftToken()).safeTransfer(msg.sender, amountOut);
+        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, amountOut);
 
         emit TokensSwapped(msg.sender, _token, liquidityPool.giftToken(), _amountIn, amountOut);
     }
