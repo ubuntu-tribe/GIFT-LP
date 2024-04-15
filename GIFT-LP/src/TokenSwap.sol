@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./LiquidityPool.sol";
-import "./PriceManager.sol";
-import "./Whitelist.sol";
+import "./PriceManagerUpgradeable.sol";
+import "./WhitelistUpgradeable.sol";
 
 contract TokenSwap is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -15,17 +15,24 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
     mapping(address => bool) public swappableTokens;
 
     LiquidityPool public liquidityPool;
-    PriceManager public priceManager;
-    Whitelist public whitelist;
+    PriceManagerUpgradeable public priceManager;
+    WhitelistUpgradeable public whitelist;
 
     event TokensSwapped(address indexed user, address indexed fromToken, address indexed toToken, uint256 amountIn, uint256 amountOut);
 
-    constructor(address _liquidityPool, address _priceManager, address _whitelist) {
+    constructor(address _liquidityPool, address _priceManagerProxy, address _whitelistProxy) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         liquidityPool = LiquidityPool(_liquidityPool);
-        priceManager = PriceManager(_priceManager);
-        whitelist = Whitelist(_whitelist);
+        priceManager = PriceManagerUpgradeable(_priceManagerProxy);
+        whitelist = WhitelistUpgradeable(_whitelistProxy);
     }
+
+    /**
+    * @dev Make sure that the `giftPrice` variable in the `PriceManager` contract is updated
+    * correctly to reflect the price of GIFT tokens in cents with 18 decimal places.
+    * For example, if the price is 0.072 cents per milligram, the `giftPrice` should be
+    * set to `72000000000000000` (0.072 * 1e18).
+    */
 
     function swapTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
@@ -34,7 +41,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         IERC20(_token).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * giftPrice) / 1e18;
+        uint256 amountOut = (_amountIn * 1e18) / giftPrice;
         // Check if there is enough liquidity before removing
         require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= amountOut, "Insufficient liquidity");
 
@@ -50,7 +57,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         require(swappableTokens[_token], "Token not swappable");
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountIn = (_amountOut * 1e18) / giftPrice;
+        uint256 amountIn = (_amountOut * giftPrice) / 1e18;
 
         IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), amountIn);
         liquidityPool.addLiquidity(_token, _amountOut);
@@ -71,7 +78,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         IERC20(_tokenIn).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * giftPrice) / 1e18;
+        uint256 amountOut = (_amountIn * 1e18) / giftPrice;
 
         // Check if there is enough liquidity before removing
         require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= amountOut, "Insufficient liquidity");
