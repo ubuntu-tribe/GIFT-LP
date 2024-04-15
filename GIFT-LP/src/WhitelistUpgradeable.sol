@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 // Importing OpenZeppelin's AccessControl for robust role-based access control.
-import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 // The Whitelist contract extends AccessControl to manage whitelisted addresses.
-contract Whitelist is AccessControl {
+contract WhitelistUpgradeable is Initializable, AccessControlUpgradeable {
     // Declaring a role for users who can modify the whitelist.
     bytes32 public constant WHITELISTER_ROLE = keccak256("WHITELISTER_ROLE");
     // Mapping to track which addresses are whitelisted.
@@ -15,8 +16,9 @@ contract Whitelist is AccessControl {
     event AddedToWhitelist(address indexed account);
     event RemovedFromWhitelist(address indexed account);
 
-    // Constructor that assigns the deploying address as the default admin.
-    constructor() {
+    // Initializer that assigns the deploying address as the default admin.
+    function initialize() public initializer {
+        __AccessControl_init();
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
