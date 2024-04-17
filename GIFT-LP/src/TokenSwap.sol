@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./LiquidityPool.sol";
-import "./PriceManagerUpgradeable.sol";
-import "./WhitelistUpgradeable.sol";
+import "./PriceManager.sol";
+import "./Whitelist.sol";
 
 contract TokenSwap is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -15,16 +15,16 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
     mapping(address => bool) public swappableTokens;
 
     LiquidityPool public liquidityPool;
-    PriceManagerUpgradeable public priceManager;
-    WhitelistUpgradeable public whitelist;
+    PriceManager public priceManager;
+    Whitelist public whitelist;
 
     event TokensSwapped(address indexed user, address indexed fromToken, address indexed toToken, uint256 amountIn, uint256 amountOut);
 
-    constructor(address _liquidityPool, address _priceManagerProxy, address _whitelistProxy) {
+    constructor(address _liquidityPool, address _priceManager, address _whitelist) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         liquidityPool = LiquidityPool(_liquidityPool);
-        priceManager = PriceManagerUpgradeable(_priceManagerProxy);
-        whitelist = WhitelistUpgradeable(_whitelistProxy);
+        priceManager = PriceManager(_priceManager);
+        whitelist = Whitelist(_whitelist);
     }
 
     /**
@@ -97,5 +97,24 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
     function removeSwappableToken(address _token) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
         swappableTokens[_token] = false;
+    }
+
+    // Function to update the PriceManager contract address. Restricted to admin.
+    function setPriceManager(address _priceManager) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
+        priceManager = PriceManager(_priceManager);
+    }
+
+    // Function to update the Whitelist contract address. Restricted to admin.
+    function setWhitelist(address _whitelist) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
+        whitelist = Whitelist(_whitelist);
+    }
+
+    // Function to transfer the admin role to a new address. Restricted to the current admin.
+    function transferAdminRole(address newAdmin) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can transfer admin role");
+        grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 }
