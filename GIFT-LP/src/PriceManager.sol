@@ -2,11 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract PriceManagerUpgradeable is Initializable, OwnableUpgradeable, AccessControlUpgradeable {
+contract PriceManager is Ownable, AccessControl {
     mapping(address => AggregatorV3Interface) public tokenPriceFeeds;
     uint256 public giftPrice;
     AggregatorV3Interface public shibPriceFeed;
@@ -14,9 +13,7 @@ contract PriceManagerUpgradeable is Initializable, OwnableUpgradeable, AccessCon
 
     bytes32 public constant PRICE_SETTER_ROLE = keccak256("PRICE_SETTER_ROLE");
 
-    function initialize(address _shibPriceFeed) public initializer {
-        __Ownable_init(msg.sender);
-        __AccessControl_init();
+    constructor(address _shibPriceFeed) Ownable(msg.sender) {
         shibPriceFeed = AggregatorV3Interface(_shibPriceFeed);
         _grantRole(PRICE_SETTER_ROLE, msg.sender);
     }
