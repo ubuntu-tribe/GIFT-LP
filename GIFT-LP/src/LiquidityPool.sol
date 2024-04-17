@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./PriceManagerUpgradeable.sol";
-import "./WhitelistUpgradeable.sol";
+import "./PriceManager.sol";
+import "./Whitelist.sol";
 
 // Declaring the main contract, inheriting AccessControl for role management and ReentrancyGuard for security against reentrancy attacks.
 contract LiquidityPool is AccessControl, ReentrancyGuard {
@@ -34,8 +34,8 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
     bytes32 public constant PREMIUM_MANAGER_ROLE = keccak256("PREMIUM_MANAGER_ROLE");
 
     // External contracts for price management and whitelisting.
-    PriceManagerUpgradeable public priceManager;
-    WhitelistUpgradeable public whitelist;
+    PriceManager public priceManager;
+    Whitelist public whitelist;
 
     // Event declarations for logging significant actions.
     event LiquidityAdded(address indexed provider, address indexed token, uint256 amount);
@@ -49,15 +49,15 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
         address _giftToken,
         address _usdcToken,
         address _usdtToken,
-        address _priceManagerProxy,
-        address _whitelistProxy
+        address _priceManager,
+        address _whitelist
     ) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender); // Granting the deployer admin rights.
         giftToken = _giftToken; // Setting GIFT token address.
         usdcToken = _usdcToken; // Setting USDC token address.
         usdtToken = _usdtToken; // Setting USDT token address.
-        priceManager = PriceManagerUpgradeable(_priceManagerProxy); // Initializing PriceManager contract.
-        whitelist = WhitelistUpgradeable(_whitelistProxy); // Initializing Whitelist contract.
+        priceManager = PriceManager(_priceManager); // Initializing PriceManager contract.
+        whitelist = Whitelist(_whitelist); // Initializing Whitelist contract.
     }
 
     // Function to add liquidity to the pool. Restricted to whitelisted liquidity providers.
@@ -83,7 +83,7 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
         emit LiquidityRemoved(msg.sender, _token, _amount); // Emit event for liquidity removal.
         checkLiquidityThreshold(_token); // Check if liquidity falls below threshold.
     }
-
+    
     // Function to transfer Ownership.
     function transferAdminRole(address newAdmin) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can transfer admin role");
@@ -129,5 +129,17 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
         if (threshold > 0 && liquidity[_token] < threshold) {
             emit LiquidityThresholdAlert(_token, threshold); // Emit alert if threshold is breached.
         }
+    }
+
+    // Function to update the PriceManager contract address. Restricted to admin.
+    function setPriceManager(address _priceManager) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
+        priceManager = PriceManager(_priceManager);
+    }
+
+    // Function to update the Whitelist contract address. Restricted to admin.
+    function setWhitelist(address _whitelist) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
+        whitelist = Whitelist(_whitelist);
     }
 }
