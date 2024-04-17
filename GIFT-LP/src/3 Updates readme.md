@@ -1,24 +1,6 @@
-# Deploying Upgradeable Contracts using a Proxy Pattern
+# Updating whitelist & pricemanager
 
-To make the Whitelist and PriceManager contracts upgradeable in the LiquidityPool & Tokenswap contracts, follow these steps:
-
-1. Deploy the implementation contracts for Whitelist and PriceManager:
-   - Create separate implementation contracts for Whitelist and PriceManager.
-   - Ensure that these contracts are properly initialized and have the necessary functionality.
-
-2. Deploy proxy contracts for each implementation contract:
-   - Deploy a proxy contract for the Whitelist implementation contract.
-   - Deploy a proxy contract for the PriceManager implementation contract.
-   - Initialize each proxy contract with the address of its corresponding implementation contract.
-
-3. Pass the proxy addresses when deploying the LiquidityPool & Tokenswap contracts:
-   - When deploying the LiquidityPool & Tokenswap contracts, pass the addresses of the Whitelist and PriceManager proxy contracts as constructor arguments.
-   - The LiquidityPool & Tokenswap contracts should interact with the Whitelist and PriceManager contracts through their proxy addresses.
-
-By following these steps, you enable the upgradability of the Whitelist and PriceManager contracts within the LiquidityPool & Tokenswap contract. This allows you to update and enhance the features of these contracts without requiring a full redeployment of the LiquidityPool & Tokenswap contract.
-
-
-
+functions have been added to the lp and tokenswap contract to update the whitelist and price manager contract
 
 
 
