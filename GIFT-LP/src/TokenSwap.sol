@@ -11,14 +11,20 @@ import "./Whitelist.sol";
 
 contract TokenSwap is AccessControl, ReentrancyGuard {
     using SafeERC20 for IERC20;
-
+    
+    //mapping swappable tokens
     mapping(address => bool) public swappableTokens;
+    //mapping premium rates
+    mapping(address => uint256) public premiumRates;
 
     LiquidityPool public liquidityPool;
     PriceManager public priceManager;
     Whitelist public whitelist;
+    address public premiumWallet; //state variable to store the premium wallet 
+
 
     event TokensSwapped(address indexed user, address indexed fromToken, address indexed toToken, uint256 amountIn, uint256 amountOut);
+    event PremiumRateUpdated(address indexed account, uint256 newRate);
 
     constructor(address _liquidityPool, address _priceManager, address _whitelist) {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -33,38 +39,85 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
     * For example, if the price is 0.072 cents per milligram, the `giftPrice` should be
     * set to `72000000000000000` (0.072 * 1e18).
     */
+    function setPremiumWallet(address _newPremiumWallet) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can set admin wallet");
+        premiumWallet = _newPremiumWallet;
+    }
+
+    // Function for setting premium per address
+    function setPremiumRate(address _address, uint256 _rate) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can set premium rates");
+        require(_rate <= 5, "Rate must be 5% or less");
+        premiumRates[_address] = _rate;
+        emit PremiumRateUpdated(_address, _rate);
+    }
+    
+    // Function for updating premium
+    function updatePremiumRate(address _address, uint256 _newRate) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can update premium rates");
+        require(_newRate <= 5, "Rate must be 5% or less");
+        premiumRates[_address] = _newRate;
+        emit PremiumRateUpdated(_address, _newRate);
+    }
 
     function swapTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
         require(swappableTokens[_token], "Token not swappable");
 
         IERC20(_token).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
-
+        
+        //main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
         uint256 amountOut = (_amountIn * 1e18) / giftPrice;
+
+        // Determine the fee percentage
+        uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
+        uint256 feeAmount = (amountOut * feePercentage) / 100; // Calculate the fee amount
+
+        // Adjust the amountOut by subtracting the fee
+        uint256 finalAmountOut = amountOut - feeAmount;
+
+
+
         // Check if there is enough liquidity before removing
-        require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= amountOut, "Insufficient liquidity");
+        require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= finalAmountOut, "Insufficient liquidity");
 
 
-        liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), amountOut);
-        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, amountOut);
+        liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), finalAmountOut);
 
-        emit TokensSwapped(msg.sender, _token, liquidityPool.giftToken(), _amountIn, amountOut);
+
+        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, finalAmountOut);// Transfer the final amount to the recipient
+        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);// Send the fee to the admin wallet
+
+
+        emit TokensSwapped(msg.sender, _token, liquidityPool.giftToken(), _amountIn, finalAmountOut);
     }
 
-    function swapGiftToOtherTokens(address _token, uint256 _amountOut) external nonReentrant {
+    function swapGiftToOtherTokens(address _token, uint256 _amountOut, address _recipient) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
         require(swappableTokens[_token], "Token not swappable");
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountIn = (_amountOut * giftPrice) / 1e18;
+        uint256 amountIn = (_amountOut * 1e18) / giftPrice;
+    
+        // Determine the fee percentage
+        uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
+        uint256 feeAmount = (amountIn * feePercentage) / 100; // Calculate the fee amount
+   
+        // Adjust the amountIn by adding the fee
+        uint256 finalAmountIn = amountIn + feeAmount;
 
-        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), amountIn);
+        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), finalAmountIn);
+
+        // Check if there is enough liquidity before adding
+        require(IERC20(_token).balanceOf(address(liquidityPool)) >= _amountOut, "Insufficient liquidity");
+
         liquidityPool.addLiquidity(_token, _amountOut);
-        IERC20(_token).safeTransfer(msg.sender, _amountOut);
+        IERC20(_token).safeTransfer(_recipient, _amountOut); // Transfer the swapped tokens to the recipient
+        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount); // Send the fee to the premium wallet
 
-        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, amountIn, _amountOut);
-    }
+        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, finalAmountIn, _amountOut);
+    } 
 
     /**
      * @dev Swaps `_amountIn` of `_tokenIn` to GIFT and sends to `_recipient`.
@@ -80,13 +133,25 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         uint256 giftPrice = priceManager.giftPrice();
         uint256 amountOut = (_amountIn * 1e18) / giftPrice;
 
+        // Determine the fee percentage
+        uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
+        uint256 feeAmount = (amountOut * feePercentage) / 100; // Calculate the fee amount
+
+        // Adjust the amountOut by subtracting the fee
+        uint256 finalAmountOut = amountOut - feeAmount;
+
         // Check if there is enough liquidity before removing
-        require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= amountOut, "Insufficient liquidity");
+        require(liquidityPool.liquidity(address(liquidityPool.giftToken())) >= finalAmountOut, "Insufficient liquidity");
 
-        liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), amountOut);
-        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, amountOut);
 
-        emit TokensSwapped(msg.sender, _tokenIn, liquidityPool.giftToken(), _amountIn, amountOut);
+        liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), finalAmountOut);
+
+
+        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, finalAmountOut);// Transfer the final amount to the recipient
+        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);// Send the fee to the admin wallet
+
+
+        emit TokensSwapped(msg.sender,_tokenIn, liquidityPool.giftToken(), _amountIn, finalAmountOut);
     }
 
     function addSwappableToken(address _token) external {
@@ -117,4 +182,6 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
+    // Function to update the admin wallet address. Restricted to the current admin.
+
 }
