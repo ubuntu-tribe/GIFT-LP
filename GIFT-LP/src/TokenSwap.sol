@@ -173,6 +173,41 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         emit TokensSwapped(msg.sender,_tokenIn, liquidityPool.giftToken(), _amountIn, finalAmountOut);
     }
 
+
+    
+    function swapGift(uint256 _amountIn, address _recipient) external nonReentrant {
+        require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
+
+        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+    
+        uint256 giftPrice = priceManager.giftPrice();
+        uint256 amountOut = (_amountIn * giftPrice) / 1e18;
+
+        // Determine the fee percentage
+        uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
+        uint256 feeAmount = (amountOut * feePercentage) / 100; // Calculate the fee amount
+
+        // Adjust the amountOut by subtracting the fee
+        uint256 finalAmountOut = amountOut - feeAmount;
+
+        // Check if there is enough liquidity before removing
+        require(IERC20(liquidityPool.usdcToken()).balanceOf(address(liquidityPool)) >= finalAmountOut + feeAmount, "Insufficient USDC liquidity");
+
+        // Remove USDC liquidity from the pool
+        liquidityPool.removeLiquidity(liquidityPool.usdcToken(), finalAmountOut + feeAmount);
+
+        // Transfer the USDC tokens from the liquidity pool to the TokenSwap contract
+        IERC20(liquidityPool.usdcToken()).safeTransfer(address(this), finalAmountOut + feeAmount);
+
+        // Transfer the final amount of USDC to the recipient
+        IERC20(liquidityPool.usdcToken()).safeTransfer(_recipient, finalAmountOut);
+
+        // Send the fee to the premium wallet
+        IERC20(liquidityPool.usdcToken()).safeTransfer(premiumWallet, feeAmount);
+
+        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), liquidityPool.usdcToken(), _amountIn, finalAmountOut);
+    }
+
     function addSwappableToken(address _token) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
         swappableTokens[_token] = true;
