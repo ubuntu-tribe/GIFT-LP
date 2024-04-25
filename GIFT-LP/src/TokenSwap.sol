@@ -181,7 +181,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
     
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e6) / giftPrice;
+        uint256 amountOut = (_amountIn * giftPrice) / 1e12;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
