@@ -109,23 +109,28 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         // Adjust the amountIn by adding the fee
         uint256 finalAmountIn = amountIn + feeAmount;
 
+        // Transfer the GIFT tokens from the user to the TokenSwap contract
         IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(this), finalAmountIn);
 
-       // Check if there is enough liquidity before adding
-       require(IERC20(_token).balanceOf(address(liquidityPool)) >= _amountOut, "Insufficient liquidity");
+        // Check if there is enough liquidity before removing
+        require(IERC20(_token).balanceOf(address(liquidityPool)) >= _amountOut, "Insufficient liquidity");
 
-       liquidityPool.addLiquidity(_token, _amountOut);
+        // Remove liquidity from the pool
+        liquidityPool.removeLiquidity(_token, _amountOut);
 
-       // Transfer the GIFT tokens from the TokenSwap contract to the liquidity pool
-       IERC20(liquidityPool.giftToken()).safeTransfer(address(liquidityPool), amountIn);
+        // Transfer the swapped tokens from the liquidity pool to the TokenSwap contract
+        IERC20(_token).safeTransfer(address(this), _amountOut);
 
-       // Transfer the swapped tokens to the recipient
-       IERC20(_token).safeTransfer(_recipient, _amountOut);
+        // Transfer the swapped tokens to the recipient
+        IERC20(_token).safeTransfer(_recipient, _amountOut);
 
-       // Send the fee to the premium wallet
-       IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
+        // Transfer the GIFT tokens from the TokenSwap contract to the liquidity pool
+        IERC20(liquidityPool.giftToken()).safeTransfer(address(liquidityPool), amountIn);
 
-       emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, finalAmountIn, _amountOut);
+        // Send the fee to the premium wallet
+        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
+
+        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, finalAmountIn, _amountOut);
     }
 
     /**
