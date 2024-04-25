@@ -68,7 +68,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
     
         //main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e18) / giftPrice;
+        uint256 amountOut = (_amountIn * 1e12) / giftPrice;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -145,7 +145,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         IERC20(_tokenIn).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e18) / giftPrice;
+        uint256 amountOut = (_amountIn * 1e6) / giftPrice;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -181,7 +181,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
     
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * giftPrice) / 1e18;
+        uint256 amountOut = (_amountIn * 1e6) / giftPrice;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
