@@ -5,7 +5,7 @@
 In the `swapTokens` and `swapTokensForRecipient` functions, the following calculation is performed:
 
 ```solidity
-uint256 amountOut = (_amountIn * 1e12) / giftPrice;
+uint256 amountOut = (_amountIn ** 1e12) / giftPrice;
 ```
 
 Here's how it works:
@@ -13,7 +13,7 @@ Here's how it works:
 - `_amountIn` is the amount of USDC tokens being swapped, with 6 decimal places.
 - We multiply `_amountIn` by 10^12 (1e12) to convert USDC to an equivalent value with 18 decimal places.
 - `giftPrice` is the price of GIFT in US dollars, represented with 18 decimal places.
-- By dividing `(_amountIn * 1e12)` by `giftPrice`, we calculate the amount of GIFT tokens equivalent to the given `_amountIn` of USDC tokens.
+- By dividing `(_amountIn ** 1e12)` by `giftPrice`, we calculate the amount of GIFT tokens equivalent to the given `_amountIn` of USDC tokens.
 
 Let's go through an example:
 
@@ -21,7 +21,7 @@ Let's go through an example:
 - `giftPrice` is set to 72000000000000000, representing 0.072 US dollars with 18 decimal places.
 - The `amountOut` calculation will be:
   ```
-  amountOut = (10 * 1e12) / 72000000000000000
+  amountOut = (10 ** 1e12) / 72000000000000000
             = 10000000000000 / 72000000000000000
             = 0.138888888888888888 (in 18 decimal places)
             = 138888888888888888 (as a uint256 value)
