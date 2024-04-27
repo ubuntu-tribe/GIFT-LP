@@ -100,7 +100,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         require(swappableTokens[_token], "Token not swappable");
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountIn = (_amountOut * giftPrice) / 1e12;
+        uint256 amountIn = (_amountOut * giftPrice) / 1e30;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -180,7 +180,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         require(swappableTokens[_token], "Token not swappable");
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountIn = (_amountOut * giftPrice) / 1e12;
+        uint256 amountIn = (_amountOut * giftPrice) / 1e30;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
