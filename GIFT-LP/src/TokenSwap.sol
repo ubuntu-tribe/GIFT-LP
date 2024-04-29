@@ -68,7 +68,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
     
         //main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e30) / giftPrice;
+        uint256 amountOut = ((_amountIn * 10**12) / giftPrice)*1e18;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -95,42 +95,40 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         emit TokensSwapped(msg.sender, _token, liquidityPool.giftToken(), _amountIn, finalAmountOut);
     }
 
-    function swapGiftToOtherTokens(address _token, uint256 _amountOut, address _recipient) external nonReentrant {
+
+    function swapGiftToOtherTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
         require(swappableTokens[_token], "Token not swappable");
 
+        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+
+        // main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountIn = (_amountOut * giftPrice) / 1e30;
+        uint256 amountOut = (_amountIn * giftPrice) / 1e30;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
-        uint256 feeAmount = (amountIn * feePercentage) / 100; // Calculate the fee amount
+        uint256 feeAmount = (amountOut * feePercentage) / 100; // Calculate the fee amount
 
-        // Adjust the amountIn by adding the fee
-        uint256 finalAmountIn = amountIn + feeAmount;
-
-        // Transfer the GIFT tokens from the user to the TokenSwap contract
-        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(this), finalAmountIn);
+        // Adjust the amountOut by subtracting the fee
+        uint256 finalAmountOut = amountOut - feeAmount;
 
         // Check if there is enough liquidity before removing
-        require(IERC20(_token).balanceOf(address(liquidityPool)) >= _amountOut, "Insufficient liquidity");
+        require(liquidityPool.liquidity(_token) >= finalAmountOut + feeAmount, "Insufficient liquidity");
 
         // Remove liquidity from the pool
-        liquidityPool.removeLiquidity(_token, _amountOut);
+        liquidityPool.removeLiquidity(_token, finalAmountOut + feeAmount);
 
         // Transfer the swapped tokens from the liquidity pool to the TokenSwap contract
-        IERC20(_token).safeTransfer(address(this), _amountOut);
+        IERC20(_token).safeTransfer(address(this), finalAmountOut + feeAmount);
 
-        // Transfer the swapped tokens to the recipient
-        IERC20(_token).safeTransfer(_recipient, _amountOut);
-
-        // Transfer the GIFT tokens from the TokenSwap contract to the liquidity pool
-        IERC20(liquidityPool.giftToken()).safeTransfer(address(liquidityPool), amountIn);
+        // Transfer the final amount to the recipient
+        IERC20(_token).safeTransfer(_recipient, finalAmountOut);
 
         // Send the fee to the premium wallet
-        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
+        IERC20(_token).safeTransfer(premiumWallet, feeAmount);
 
-        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, finalAmountIn, _amountOut);
+        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, _amountIn, finalAmountOut);
     }
 
     /**
@@ -145,7 +143,7 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         IERC20(_tokenIn).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e30) / giftPrice;
+        uint256 amountOut = (_amountIn * 10**12) / giftPrice;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -175,42 +173,39 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
 
 
     
-    function swapGift(address _token, uint256 _amountOut, address _recipient) external nonReentrant {
+    function swapGift(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
         require(swappableTokens[_token], "Token not swappable");
 
+        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+
+        // main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountIn = (_amountOut * giftPrice) / 1e30;
+        uint256 amountOut = (_amountIn * giftPrice) / 1e30;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
-        uint256 feeAmount = (amountIn * feePercentage) / 100; // Calculate the fee amount
+        uint256 feeAmount = (amountOut * feePercentage) / 100; // Calculate the fee amount
 
-        // Adjust the amountIn by adding the fee
-        uint256 finalAmountIn = amountIn + feeAmount;
-
-        // Transfer the GIFT tokens from the user to the TokenSwap contract
-        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(this), finalAmountIn);
+        // Adjust the amountOut by subtracting the fee
+        uint256 finalAmountOut = amountOut - feeAmount;
 
         // Check if there is enough liquidity before removing
-        require(IERC20(_token).balanceOf(address(liquidityPool)) >= _amountOut, "Insufficient liquidity");
+        require(liquidityPool.liquidity(_token) >= finalAmountOut + feeAmount, "Insufficient liquidity");
 
         // Remove liquidity from the pool
-        liquidityPool.removeLiquidity(_token, _amountOut);
+        liquidityPool.removeLiquidity(_token, finalAmountOut + feeAmount);
 
         // Transfer the swapped tokens from the liquidity pool to the TokenSwap contract
-        IERC20(_token).safeTransfer(address(this), _amountOut);
+        IERC20(_token).safeTransfer(address(this), finalAmountOut + feeAmount);
 
-        // Transfer the swapped tokens to the recipient
-        IERC20(_token).safeTransfer(_recipient, _amountOut);
-
-        // Transfer the GIFT tokens from the TokenSwap contract to the liquidity pool
-        IERC20(liquidityPool.giftToken()).safeTransfer(address(liquidityPool), amountIn);
+        // Transfer the final amount to the recipient
+        IERC20(_token).safeTransfer(_recipient, finalAmountOut);
 
         // Send the fee to the premium wallet
-        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
+        IERC20(_token).safeTransfer(premiumWallet, feeAmount);
 
-        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, finalAmountIn, _amountOut);
+        emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, _amountIn, finalAmountOut);
     }
 
     function addSwappableToken(address _token) external {
