@@ -111,6 +111,7 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
 
     // Function to check if liquidity for a specific token falls below a set threshold.
     function checkLiquidityThreshold(address _token, uint256 _threshold) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
         if (liquidity[_token] < _threshold) {
             emit LiquidityThresholdAlert(_token, _threshold); // Emit alert if threshold is breached.
         }
