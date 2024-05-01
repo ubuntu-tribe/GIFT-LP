@@ -64,7 +64,7 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
     function addLiquidity(address _token, uint256 _amount) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted"); // Check if sender is whitelisted.
         require(hasRole(LIQUIDITY_PROVIDER_ROLE, msg.sender), "Not a liquidity provider"); // Check if sender has liquidity provider role.
-
+        require(_token == usdcToken || _token == usdtToken, "Token must be USDC or USDT");
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount); // Safely transfer tokens from sender to contract.
         liquidity[_token] += _amount; // Update liquidity mapping.
 
