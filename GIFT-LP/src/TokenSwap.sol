@@ -229,6 +229,11 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
         whitelist = Whitelist(_whitelist);
     }
+    // Function to update the Liquiditypool contract address. Restricted to admin.
+    function setLiquidityPool(address _liquidityPool) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
+        liquidityPool = LiquidityPool(_liquidityPool);
+    }
 
     // Function to transfer the admin role to a new address. Restricted to the current admin.
     function transferAdminRole(address newAdmin) external {
@@ -236,6 +241,5 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
         revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
-    // Function to update the admin wallet address. Restricted to the current admin.
 
 }
