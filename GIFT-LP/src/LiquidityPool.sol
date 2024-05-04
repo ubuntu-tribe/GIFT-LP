@@ -64,7 +64,6 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
     function addLiquidity(address _token, uint256 _amount) external nonReentrant {
         require(whitelist.isWhitelisted(msg.sender), "Not whitelisted"); // Check if sender is whitelisted.
         require(hasRole(LIQUIDITY_PROVIDER_ROLE, msg.sender), "Not a liquidity provider"); // Check if sender has liquidity provider role.
-        require(_token == usdtToken || _token == usdcToken || _token == giftToken, "Token not allowed"); // Restrict token to USDT, USDC, or GIFT.
         IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount); // Safely transfer tokens from sender to contract.
         liquidity[_token] += _amount; // Update liquidity mapping.
 
@@ -111,7 +110,6 @@ contract LiquidityPool is AccessControl, ReentrancyGuard {
 
     // Function to check if liquidity for a specific token falls below a set threshold.
     function checkLiquidityThreshold(address _token, uint256 _threshold) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
         if (liquidity[_token] < _threshold) {
             emit LiquidityThresholdAlert(_token, _threshold); // Emit alert if threshold is breached.
         }
