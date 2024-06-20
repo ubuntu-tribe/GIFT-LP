@@ -1,36 +1,54 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.25;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "./LiquidityPool.sol";
 import "./PriceManager.sol";
 import "./Whitelist.sol";
+import "./KYC.sol";
 
-contract TokenSwap is AccessControl, ReentrancyGuard {
-    using SafeERC20 for IERC20;
+/**
+ * @title TokenSwap
+ * @dev Contract for swapping tokens, including support for KYC levels, whitelists and premium rates.
+ */
+contract TokenSwap is Initializable, AccessControlUpgradeable, ReentrancyGuardUpgradeable {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
     
     //mapping swappable tokens
     mapping(address => bool) public swappableTokens;
     //mapping premium rates
     mapping(address => uint256) public premiumRates;
+    /**
+    *Trusted addresses(automated system interactions, 
+    *backend services that are trusted to bypass
+    *kyc and whitelist checks)
+    */
+    mapping(address => bool) public trustedAddresses;
+
 
     LiquidityPool public liquidityPool;
     PriceManager public priceManager;
     Whitelist public whitelist;
+    KYC public kycPermissions;
     address public premiumWallet; //state variable to store the premium wallet 
 
 
     event TokensSwapped(address indexed user, address indexed fromToken, address indexed toToken, uint256 amountIn, uint256 amountOut);
     event PremiumRateUpdated(address indexed account, uint256 newRate);
 
-    constructor(address _liquidityPool, address _priceManager, address _whitelist) {
+    function initialize(address _liquidityPool, address _priceManager, address _whitelist, address _kycPermissions) public initializer {
+        __AccessControl_init();
+        __ReentrancyGuard_init();
+
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
         liquidityPool = LiquidityPool(_liquidityPool);
         priceManager = PriceManager(_priceManager);
         whitelist = Whitelist(_whitelist);
+        kycPermissions = KYC(_kycPermissions);
     }
 
     /**
@@ -59,16 +77,32 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         premiumRates[_address] = _newRate;
         emit PremiumRateUpdated(_address, _newRate);
     }
+    //Function to add trusted addresses
+    function addTrustedAddress(address _address) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can add trusted addresses");
+        trustedAddresses[_address] = true;
+    }
+    //Function to remove trusted addresses
+    function removeTrustedAddress(address _address) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Only admin can remove trusted addresses");
+        trustedAddresses[_address] = false;
+    }
 
     function swapTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
-        require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
-        require(swappableTokens[_token], "Token not swappable");
-
-        IERC20(_token).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+       require(_recipient == msg.sender, "Recipient must be the sender");
+       require(swappableTokens[_token], "Token not swappable");
+       if (!trustedAddresses[msg.sender]) {
+            require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
+            uint256 kycLevelId = kycPermissions.getKYCLevel(msg.sender);
+            require(kycLevelId < kycPermissions.getKYCLevels().length, "No KYC level set");
+            uint256 allowedSwapLimit = kycPermissions.getKYCLevels()[kycLevelId].swapLimit;
+            require(_amountIn <= allowedSwapLimit, "Swap amount exceeds KYC limit");
+        }
+        IERC20Upgradeable(_token).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
     
         //main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e30) / giftPrice;
+        uint256 amountOut = ((_amountIn * 10**12) / giftPrice)*1e18;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -84,23 +118,27 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), finalAmountOut + feeAmount);
 
         // Transfer the GIFT tokens from the liquidity pool to the TokenSwap contract
-        IERC20(liquidityPool.giftToken()).safeTransfer(address(this), finalAmountOut + feeAmount);
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransfer(address(this), finalAmountOut + feeAmount);
 
         // Transfer the final amount to the recipient
-        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, finalAmountOut);
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransfer(_recipient, finalAmountOut);
 
         // Send the fee to the premium wallet
-        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
 
         emit TokensSwapped(msg.sender, _token, liquidityPool.giftToken(), _amountIn, finalAmountOut);
     }
 
 
-    function swapGiftToOtherTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
-        require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
-        require(swappableTokens[_token], "Token not swappable");
 
-        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+
+    function swapGiftToOtherTokens(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
+        require(swappableTokens[_token], "Token not swappable");
+        if (!trustedAddresses[msg.sender]) {     
+        
+            require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
+        }
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
         // main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
@@ -112,7 +150,12 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
 
         // Adjust the amountOut by subtracting the fee
         uint256 finalAmountOut = amountOut - feeAmount;
-
+        if (!trustedAddresses[msg.sender]) {
+            uint256 kycLevelId = kycPermissions.getKYCLevel(msg.sender);
+            require(kycLevelId < kycPermissions.getKYCLevels().length, "No KYC level set");
+            uint256 allowedSwapLimit = kycPermissions.getKYCLevels()[kycLevelId].swapLimit;
+            require(finalAmountOut <= allowedSwapLimit, "Swap amount exceeds KYC limit");
+        }
         // Check if there is enough liquidity before removing
         require(liquidityPool.liquidity(_token) >= finalAmountOut + feeAmount, "Insufficient liquidity");
 
@@ -120,13 +163,13 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         liquidityPool.removeLiquidity(_token, finalAmountOut + feeAmount);
 
         // Transfer the swapped tokens from the liquidity pool to the TokenSwap contract
-        IERC20(_token).safeTransfer(address(this), finalAmountOut + feeAmount);
+        IERC20Upgradeable(_token).safeTransfer(address(this), finalAmountOut + feeAmount);
 
         // Transfer the final amount to the recipient
-        IERC20(_token).safeTransfer(_recipient, finalAmountOut);
+        IERC20Upgradeable(_token).safeTransfer(_recipient, finalAmountOut);
 
         // Send the fee to the premium wallet
-        IERC20(_token).safeTransfer(premiumWallet, feeAmount);
+        IERC20Upgradeable(_token).safeTransfer(premiumWallet, feeAmount);
 
         emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, _amountIn, finalAmountOut);
     }
@@ -136,14 +179,23 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
      * Only callable by whitelisted addresses.
      * `_recipient` is the address to receive GIFT tokens.
      */
-    function swapTokensForRecipient(address _tokenIn, uint256 _amountIn, address _recipient) external {
-        require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
-        require(swappableTokens[_tokenIn], "Token not swappable");
-        
-        IERC20(_tokenIn).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
+    function swapTokensforrecipient(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
+       require(swappableTokens[_token], "Token not swappable");
+       if (!trustedAddresses[msg.sender]) {
+            require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
+        
+
+            uint256 kycLevelId = kycPermissions.getKYCLevel(msg.sender);
+            require(kycLevelId < kycPermissions.getKYCLevels().length, "No KYC level set");
+            uint256 allowedSwapLimit = kycPermissions.getKYCLevels()[kycLevelId].swapLimit;
+            require(_amountIn <= allowedSwapLimit, "Swap amount exceeds KYC limit");
+        }
+        IERC20Upgradeable(_token).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+    
+        //main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
-        uint256 amountOut = (_amountIn * 1e30) / giftPrice;
+        uint256 amountOut = ((_amountIn * 10**12) / giftPrice)*1e18;
 
         // Determine the fee percentage
         uint256 feePercentage = premiumRates[msg.sender] == 0 ? 5 : premiumRates[msg.sender]; // Default to 5% if no specific rate is set
@@ -159,25 +211,26 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         liquidityPool.removeLiquidity(address(liquidityPool.giftToken()), finalAmountOut + feeAmount);
 
         // Transfer the GIFT tokens from the liquidity pool to the TokenSwap contract
-        IERC20(liquidityPool.giftToken()).safeTransfer(address(this), finalAmountOut + feeAmount);
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransfer(address(this), finalAmountOut + feeAmount);
 
         // Transfer the final amount to the recipient
-        IERC20(liquidityPool.giftToken()).safeTransfer(_recipient, finalAmountOut);
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransfer(_recipient, finalAmountOut);
 
         // Send the fee to the premium wallet
-        IERC20(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransfer(premiumWallet, feeAmount);
 
-
-        emit TokensSwapped(msg.sender,_tokenIn, liquidityPool.giftToken(), _amountIn, finalAmountOut);
+        emit TokensSwapped(msg.sender, _token, liquidityPool.giftToken(), _amountIn, finalAmountOut);
     }
-
 
     
     function swapGift(address _token, uint256 _amountIn, address _recipient) external nonReentrant {
-        require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
+        require(_recipient == msg.sender, "Recipient must be the sender");
         require(swappableTokens[_token], "Token not swappable");
-
-        IERC20(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
+        if (!trustedAddresses[msg.sender]) {     
+        
+            require(whitelist.isWhitelisted(msg.sender), "Not whitelisted");
+        }
+        IERC20Upgradeable(liquidityPool.giftToken()).safeTransferFrom(msg.sender, address(liquidityPool), _amountIn);
 
         // main swap calculations
         uint256 giftPrice = priceManager.giftPrice();
@@ -189,7 +242,12 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
 
         // Adjust the amountOut by subtracting the fee
         uint256 finalAmountOut = amountOut - feeAmount;
-
+        if (!trustedAddresses[msg.sender]) {
+            uint256 kycLevelId = kycPermissions.getKYCLevel(msg.sender);
+            require(kycLevelId < kycPermissions.getKYCLevels().length, "No KYC level set");
+            uint256 allowedSwapLimit = kycPermissions.getKYCLevels()[kycLevelId].swapLimit;
+            require(finalAmountOut <= allowedSwapLimit, "Swap amount exceeds KYC limit");
+        }
         // Check if there is enough liquidity before removing
         require(liquidityPool.liquidity(_token) >= finalAmountOut + feeAmount, "Insufficient liquidity");
 
@@ -197,13 +255,14 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         liquidityPool.removeLiquidity(_token, finalAmountOut + feeAmount);
 
         // Transfer the swapped tokens from the liquidity pool to the TokenSwap contract
-        IERC20(_token).safeTransfer(address(this), finalAmountOut + feeAmount);
+        IERC20Upgradeable(_token).safeTransfer(address(this), finalAmountOut + feeAmount);
 
         // Transfer the final amount to the recipient
-        IERC20(_token).safeTransfer(_recipient, finalAmountOut);
+        IERC20Upgradeable(_token).safeTransfer(_recipient, finalAmountOut);
+
 
         // Send the fee to the premium wallet
-        IERC20(_token).safeTransfer(premiumWallet, feeAmount);
+        IERC20Upgradeable(_token).safeTransfer(premiumWallet, feeAmount);
 
         emit TokensSwapped(msg.sender, liquidityPool.giftToken(), _token, _amountIn, finalAmountOut);
     }
@@ -229,10 +288,18 @@ contract TokenSwap is AccessControl, ReentrancyGuard {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
         whitelist = Whitelist(_whitelist);
     }
-    // Function to update the Liquiditypool contract address. Restricted to admin.
-    function setLiquidityPool(address _liquidityPool) external {
+    
+    // Function to update the LiquidityPool contract address. Restricted to admin.
+    function setLiquidityPool(address _LiquidityPool) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
-        liquidityPool = LiquidityPool(_liquidityPool);
+        liquidityPool = LiquidityPool(_LiquidityPool);
+    }
+
+
+    // Function to update the LiquidityPool contract address. Restricted to admin.
+    function setKYC(address _KycPermissions) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Not an admin");
+        kycPermissions = KYC(_KycPermissions);
     }
 
     // Function to transfer the admin role to a new address. Restricted to the current admin.
